@@ -3,6 +3,7 @@
 \usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{graphicx}
+\graphicspath{{Imagenes/}}
 \usepackage{textcomp}
 \usepackage{xcolor}
 \usepackage{hyperref}
@@ -315,9 +316,9 @@ Ruta B: prueba cuantitativa &
 3.1~GB \\
 
 Copernicus EMSN038 &
-36 capas; 13 polígonos de inundación &
+36 capas; 13 polígonos de inundación potencial &
 Geodatabase ESRI; EPSG:32718 &
-Referencia de la prueba de 2017 &
+Referencia de la prueba de 2017 (zona de peligro) &
 2.3~GB \\
 
 Sentinel-1 Lima 2023 &
@@ -434,6 +435,18 @@ respectivamente. Se rasterizarán para construir
 la referencia binaria. La intersección de
 \textit{EMSN038\_AOI} con las seis huellas
 de \textit{Footprints} delimitará el área evaluable.
+Cabe precisar que el atributo \textit{source}
+de \textit{Potential\_Maximum\_flood} toma los
+valores \textit{river} y \textit{maximun height}:
+la capa describe la zona de inundación potencial
+máxima y no la extensión de agua observada el
+17 de marzo. Una revisión preliminar mostró que
+la retrodispersión VH dentro de estos polígonos
+apenas varía entre el 5 y el 17 de marzo
+(mediana de $-17.0$ y $-16.8$~dB).
+Por ello, las métricas de 2017 se interpretarán
+como coincidencia con una zona de peligro y no
+como exactitud frente a una verdad de campo.
 
 \textbf{Sentinel-1 Lima 2023.}
 Se dispone de once escenas GRD con VV y VH,
@@ -489,7 +502,11 @@ Se unificará el orden de los canales VV y VH.
 Los datos en potencia lineal se convertirán
 mediante $10\log_{10}(x)$ sobre valores positivos
 y válidos. Se propone limitar la entrada al rango
-$[-30,5]$~dB.
+$[-30,5]$~dB. Los valores inferiores a $-50$~dB,
+que aparecen en los bordes de las escenas de Lima
+(hasta $-105$~dB), se tratarán como píxeles sin
+información y no como valores mínimos de la escala,
+ya que de lo contrario se confundirían con agua.
 
 Las escenas GRD de Lima se procesarán en SNAP
 mediante aplicación de órbita, calibración
@@ -513,6 +530,23 @@ con relleno, que quedará excluido de la pérdida
 y de la evaluación. La entrada inicial tendrá
 dimensiones $256\times256\times2$, correspondientes
 a VV y VH durante el evento.
+
+Como configuración complementaria se empleará
+una entrada de $256\times256\times4$, que apila
+VV y VH previos y durante el evento. Kuro Siwo
+aporta la imagen previa más cercana (SL1) y
+UrbanSARFloods, sus bandas de intensidad previa
+(bandas 6 y 5). Sen1Floods11 no dispone de imagen
+previa y no participará en esta configuración.
+Su clase positiva será únicamente la inundación
+(clase 2 de Kuro Siwo y clases 1 y 2 de
+UrbanSARFloods), lo que permite separar el agua
+permanente de la inundación nueva. Este diseño
+sigue el hallazgo de Kuro Siwo sobre el valor
+de la dimensión temporal \cite{bountos2024kurosiwo}
+y busca reducir los falsos positivos en el
+desierto costero de Lima, donde la arena seca
+presenta baja retrodispersión en ambas fechas.
 
 Para la configuración binaria se agruparán
 las clases de agua permanente e inundación
@@ -592,7 +626,11 @@ parches dentro de cada partición. El muestreo
 considerará la representación de los eventos
 y de los parches con y sin presencia de agua,
 para reducir el predominio de las fuentes
-con mayor cantidad de muestras.
+con mayor cantidad de muestras. Como criterio
+inicial se fijará un máximo de 800 parches
+por evento, de los cuales hasta el 60\%
+contendrá agua en más del 1\% de sus píxeles
+válidos.
 
 Se documentarán el criterio de selección,
 la cantidad de parches utilizada por dataset
